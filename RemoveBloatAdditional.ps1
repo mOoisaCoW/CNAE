@@ -5,20 +5,14 @@
 .INPUTS
 .OUTPUTS
 .NOTES
-  Version:        1.
+  Version:        1.0
   Author:         Michael Charles
   Creation Date:  2022
   Purpose/Change: Initial script development
-  Change: 22/04/2024 - Added additional HP applications
+  Change: 22/04/2024 - Added check for update
 .EXAMPLE
 N/A
 #>
-
-############################################################################################################
-#                                         Initial Setup                                                    #
-#                                                                                                          #
-############################################################################################################
-
 
 ##Elevate if needed
 
@@ -54,6 +48,36 @@ if ($policy -eq "Bypass") {
 } else {
     Write-Host "Execution policy is already RemoteSigned."
 }
+
+Function Get-ScriptVersion(){
+    
+    <#
+    .SYNOPSIS
+    This function is used to check if the running script is the latest version
+    .DESCRIPTION
+    This function checks GitHub and compares the 'live' version with the one running
+    .EXAMPLE
+    Get-ScriptVersion
+    Returns a warning and URL if outdated
+    .NOTES
+    NAME: Get-ScriptVersion
+    #>
+    
+    [cmdletbinding()]
+    
+    param
+    (
+        $liveuri
+    )
+$contentheaderraw = (Invoke-WebRequest -Uri $liveuri -Method Get)
+$contentheader = $contentheaderraw.Content.Split([Environment]::NewLine)
+$liveversion = (($contentheader | Select-String 'Version:') -replace '[^0-9.]','') | Select-Object -First 1
+$currentversion = ((Get-Content -Path $PSCommandPath | Select-String -Pattern "Version: *") -replace '[^0-9.]','') | Select-Object -First 1
+if ($liveversion -ne $currentversion) {
+write-host "Script has been updated, please download the latest version from $liveuri" -ForegroundColor Red
+}
+}
+Get-ScriptVersion -liveuri "https://github.com/mOoisaCoW/CNAE/blob/main/RemoveBloatAdditional.ps1"
 
 
 # Update registry key to unhide hidden sleep
