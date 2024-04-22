@@ -5,7 +5,7 @@
 .INPUTS
 .OUTPUTS
 .NOTES
-  Version:        1.0
+  Version:        1.1
   Author:         Michael Charles
   Creation Date:  2022
   Purpose/Change: Initial script development
@@ -49,36 +49,32 @@ if ($policy -eq "Bypass") {
     Write-Host "Execution policy is already RemoteSigned."
 }
 
-Function Get-ScriptVersion(){
-    
-    <#
-    .SYNOPSIS
-    This function is used to check if the running script is the latest version
-    .DESCRIPTION
-    This function checks GitHub and compares the 'live' version with the one running
-    .EXAMPLE
-    Get-ScriptVersion
-    Returns a warning and URL if outdated
-    .NOTES
-    NAME: Get-ScriptVersion
-    #>
-    
-    [cmdletbinding()]
-    
-    param
-    (
-        $liveuri
-    )
-$contentheaderraw = (Invoke-WebRequest -Uri $liveuri -Method Get)
-$contentheader = $contentheaderraw.Content.Split([Environment]::NewLine)
-$liveversion = (($contentheader | Select-String 'Version:') -replace '[^0-9.]','') | Select-Object -First 1
-$currentversion = ((Get-Content -Path $PSCommandPath | Select-String -Pattern "Version: *") -replace '[^0-9.]','') | Select-Object -First 1
-if ($liveversion -ne $currentversion) {
-write-host "Script has been updated, please download the latest version from $liveuri" -ForegroundColor Red
-}
-}
-Get-ScriptVersion -liveuri "https://github.com/mOoisaCoW/CNAE/blob/main/RemoveBloatAdditional.ps1"
+######## Start of script update checker
+# Get the directory of the currently executing script
+$scriptDirectory = Split-Path -Path $MyInvocation.MyCommand.Path
 
+# Construct the full local path to the script file
+$localPath = Join-Path -Path $scriptDirectory -ChildPath "RemoveBloatAdditional.ps1"
+
+# URL to download new version from
+$remoteUrl = "https://github.com/04ea7d56-9fa1-4b3b-88de-2f6d5ed54826/RemoveBloatAdditional.ps1"
+
+# Get the last-modified date of the remote file
+$response = Invoke-WebRequest -Uri $remoteUrl -Method Head
+$remoteLastModified = $response.Headers.'Last-Modified'
+
+# Get the last-modified date of the local file
+$localLastModified = (Get-Item $localPath).LastWriteTime
+
+# Compare last-modified dates
+if ($remoteLastModified -gt $localLastModified) {
+    # Download the newer version
+    Invoke-WebRequest -Uri $remoteUrl -OutFile $localPath
+    Write-Host "New version downloaded."
+} else {
+    Write-Host "Local version is up to date."
+}
+######## End of script update checker
 
 # Update registry key to unhide hidden sleep
 Write-Output "Updating Registry to unhide hidden sleep"
